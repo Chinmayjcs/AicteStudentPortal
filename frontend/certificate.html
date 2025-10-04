@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Event</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Add Event</h2>
+        <button id="goDashboardBtn" onclick="window.location.href='dashboard.html'">Go to Dashboard</button>
+        <form id="eventForm" enctype="multipart/form-data">
+            <label for="eventName">Event Name:</label>
+            <input type="text" id="eventName" name="eventName" required>
+
+            <label for="point">Points:</label>
+            <input type="number" id="point" name="point" required>
+
+            <label for="description">Description:</label>
+            <textarea id="description" name="description"></textarea>
+
+            <label for="approved">Approved:</label>
+            <select id="approved" name="approved">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+            </select>
+
+            <label for="certificateImage">Certificate Image:</label>
+            <input type="file" id="certificateImage" name="certificateImage" accept="image/*">
+
+            <button type="submit">Submit</button>
+        </form>
+
+        <div id="message"></div>
+    </div>
+
+    <script src="./script.js"></script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="topbar">Admin Dashboard</div>
+  <div class="container" id="dashboardContainer">
+    <h2>Overview</h2>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+      <button id="logoutAdmin">Log Out</button>
+      <button id="refreshBtn">Refresh</button>
+    </div>
+
+    <h3>Pending Events</h3>
+    <ul id="pendingList" class="list"></ul>
+
+    <h3>Users</h3>
+    <ul id="userList" class="list"></ul>
+
+    <div id="userEvents" style="margin-top:16px; display:none;">
+      <h3 id="userEventsTitle">User Events</h3>
+      <ul id="eventsForUser" class="list"></ul>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      window.location.href = 'admin-login.html';
+    }
+
+    const pendingList = document.getElementById('pendingList');
+    const userList = document.getElementById('userList');
+    const eventsForUser = document.getElementById('eventsForUser');
+    const userEventsContainer = document.getElementById('userEvents');
+    const userEventsTitle = document.getElementById('userEventsTitle');
+
+    document.getElementById('logoutAdmin').addEventListener('click', () => {
+      localStorage.removeItem('adminToken');
+      window.location.href = 'admin-login.html';
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', () => init());
+
+    function statusBadge(status) {
+      const span = document.createElement('span');
+      span.className = `status-badge ${status}`;
+      span.textContent = status === 'approved' ? 'Approved' : (status === 'rejected' ? 'Not Approved' : 'Pending');
+      return span;
+    }
+
+    async function fetchJSON(url, opts) {
+      const res = await fetch(url, opts);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    async function loadPending() {
+      pendingList.innerHTML = '';
+      try {
+        const items = await fetchJSON('/admin/events/pending');
+        items.forEach(e => {
+          const li = document.createElement('li');
+          const left = document.createElement('div');
+          left.textContent = `${e.usn} • ${e.eventName} • ${e.point} pts`;
+          li.appendChild(left);
+          li.appendChild(statusBadge(e.status));
+
+          const actions = document.createElement('div');
+          const approve = document.createElement('button');
+          approve.textContent = 'Approve';
+          approve.addEventListener('click', async () => {
+            await fetchJSON(`/admin/events/${e._id}/status`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'approved' })
+            });
+            init();
+          });
+          const reject = document.createElement('button');
+          reject.textContent = 'Reject';
+          reject.style.marginLeft = '8px';
+          reject.addEventListener('click', async () => {
+            await fetchJSON(`/admin/events/${e._id}/status`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'rejected' })
+            });
+            init();
+          });
+          actions.appendChild(approve);
+          actions.appendChild(reject);
+          li.appendChild(actions);
+
+          pendingList.appendChild(li);
+        });
+      } catch (err) {
+        const li = document.createElement('li');
+        li.textContent = 'Failed to load pending events';
+        pendingList.appendChild(li);
+        console.error(err);
+      }
+    }
+
+    async function loadUsers() {
+      userList.innerHTML = '';
+      try {
+        const users = await fetchJSON('/admin/users');
+        users.forEach(usn => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = '#';
+          a.textContent = usn;
+          a.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await loadUserEvents(usn);
+          });
+          li.appendChild(a);
+          userList.appendChild(li);
+        });
+      } catch (err) {
+        const li = document.createElement('li');
+        li.textContent = 'Failed to load users';
+        userList.appendChild(li);
+        console.error(err);
+      }
+    }
+
+    async function loadUserEvents(usn) {
+      eventsForUser.innerHTML = '';
+      userEventsTitle.textContent = `User Events • ${usn}`;
+      userEventsContainer.style.display = 'block';
+      try {
+        const items = await fetchJSON(`/admin/users/${usn}/events`);
+        items.forEach(e => {
+          const li = document.createElement('li');
+          const left = document.createElement('div');
+          left.textContent = `${e.eventName} • ${e.point} pts`;
+          li.appendChild(left);
+          li.appendChild(statusBadge(e.status));
+
+          const actions = document.createElement('div');
+          const viewBtn = document.createElement('button');
+          viewBtn.textContent = 'View Cert';
+          viewBtn.addEventListener('click', () => {
+            window.open(`/events/${e._id}/certificate`, '_blank');
+          });
+          const dlBtn = document.createElement('button');
+          dlBtn.textContent = 'Download';
+          dlBtn.style.marginLeft = '8px';
+          dlBtn.addEventListener('click', () => {
+            window.open(`/events/${e._id}/certificate?download=1`, '_blank');
+          });
+          const approve = document.createElement('button');
+          approve.textContent = 'Approve';
+          approve.style.marginLeft = '8px';
+          approve.addEventListener('click', async () => {
+            await fetchJSON(`/admin/events/${e._id}/status`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'approved' })
+            });
+            await loadUserEvents(usn);
+            await loadPending();
+          });
+          const reject = document.createElement('button');
+          reject.textContent = 'Reject';
+          reject.style.marginLeft = '8px';
+          reject.addEventListener('click', async () => {
+            await fetchJSON(`/admin/events/${e._id}/status`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'rejected' })
+            });
+            await loadUserEvents(usn);
+            await loadPending();
+          });
+
+          actions.appendChild(viewBtn);
+          actions.appendChild(dlBtn);
+          actions.appendChild(approve);
+          actions.appendChild(reject);
+          li.appendChild(actions);
+
+          eventsForUser.appendChild(li);
+        });
+      } catch (err) {
+        const li = document.createElement('li');
+        li.textContent = 'Failed to load events';
+        eventsForUser.appendChild(li);
+        console.error(err);
+      }
+    }
+
+    async function init() {
+      await Promise.all([loadPending(), loadUsers()]);
+    }
+
+    init();
+  </script>
+</body>
+</html>

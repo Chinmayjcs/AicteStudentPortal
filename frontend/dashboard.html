@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head><title>Dashboard</title><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="style.css"></head>
+<body>
+  <div id="topbar">Student Portal</div>
+  <div class="container" id="dashboardContainer">
+  <h2 id="dashboardTitle">Student Dashboard</h2>
+  <button id="addCertBtn" onclick="window.location.href='certificate.html'">Add New Certificate</button>
+  <button id="logoutBtn">Log Out</button>
+  <div id="info"></div>
+  <ul id="certificates"></ul>
+  <h3>Your Events</h3>
+  <ul id="eventsList"></ul>
+
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('usn');
+      window.location.href = 'index.html';
+    });
+
+    async function loadDashboard() {
+      const usn = localStorage.getItem("usn");
+      if (!usn) return window.location.href = "index.html";
+
+      const res = await fetch(`/dashboard/${usn}`);
+      const data = await res.json();
+
+      document.getElementById("info").innerHTML = 
+        `<p>Total Points: ${data.totalPoints}</p>`;
+
+      const list = document.getElementById("certificates");
+      list.innerHTML = "";
+      data.certificates.forEach(c => {
+        const li = document.createElement("li");
+        li.textContent = `${c.title} - ${c.points} points`;
+        list.appendChild(li);
+      });
+
+      // Load events for this user to show certificate actions
+      const eventsRes = await fetch(`/events/user/${usn}`);
+      const events = await eventsRes.json();
+      const eventsList = document.getElementById("eventsList");
+      eventsList.innerHTML = "";
+      events.forEach(e => {
+        const li = document.createElement("li");
+        const title = document.createElement("span");
+        title.textContent = `${e.eventName} - ${e.point} points`;
+        li.appendChild(title);
+
+        // status badge
+        const status = document.createElement("span");
+        status.textContent = e.status === 'approved' ? 'Approved' : (e.status === 'rejected' ? 'Not Approved' : 'Pending');
+        status.className = `status-badge ${e.status}`;
+        status.style.marginLeft = "8px";
+        li.appendChild(status);
+
+        if (e.hasCertificate) {
+          const viewBtn = document.createElement("button");
+          viewBtn.textContent = "View Certificate";
+          viewBtn.style.marginLeft = "8px";
+          viewBtn.addEventListener("click", () => {
+            window.open(`/events/${e._id}/certificate`, "_blank");
+          });
+          li.appendChild(viewBtn);
+
+          const downloadBtn = document.createElement("button");
+          downloadBtn.textContent = "Download Certificate";
+          downloadBtn.style.marginLeft = "6px";
+          downloadBtn.addEventListener("click", () => {
+            window.open(`/events/${e._id}/certificate?download=1`, "_blank");
+          });
+          li.appendChild(downloadBtn);
+        } else {
+          const noCert = document.createElement("span");
+          noCert.textContent = " (No certificate uploaded)";
+          noCert.style.color = "#888";
+          li.appendChild(noCert);
+        }
+
+        eventsList.appendChild(li);
+      });
+    }
+    loadDashboard();
+  </script>
+  </div>
+</body>
+</html>

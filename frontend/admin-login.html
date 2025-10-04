@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Login</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="topbar">Admin Portal</div>
+  <div class="container">
+    <h2>Admin Login</h2>
+    <form id="adminLoginForm">
+      <label for="adminId">Admin ID</label>
+      <input id="adminId" type="text" required placeholder="Enter admin ID" />
+      <label for="passkey">Passkey</label>
+      <input id="passkey" type="password" required placeholder="Enter passkey" />
+      <button type="submit">Login</button>
+      <button type="button" onclick="window.location.href='index.html'" style="margin-top:10px">Back to Student Login</button>
+    </form>
+    <div id="message"></div>
+
+    <hr style="margin:16px 0; border: none; border-top: 1px solid #3a3a3a;" />
+
+    <button id="toggleCreateAdmin" style="margin-bottom:10px">Add New Admin</button>
+
+    <form id="createAdminForm" style="display:none">
+      <label for="newAdminName">Admin Name</label>
+      <input id="newAdminName" type="text" placeholder="Enter admin name" />
+
+      <label for="newAdminId">Admin ID</label>
+      <input id="newAdminId" type="text" placeholder="Choose admin ID" />
+
+      <label for="newPasskey">Create Passkey</label>
+      <input id="newPasskey" type="password" placeholder="Create passkey" />
+
+      <button type="submit">Create Admin</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('adminLoginForm');
+    const message = document.getElementById('message');
+    const toggleBtn = document.getElementById('toggleCreateAdmin');
+    const createForm = document.getElementById('createAdminForm');
+
+    // Admin login handler
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      message.textContent = '';
+      const adminId = document.getElementById('adminId').value.trim();
+      const passkey = document.getElementById('passkey').value.trim();
+      try {
+        const res = await fetch('/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminId, passkey })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          message.style.color = 'red';
+          message.textContent = data.error || 'Login failed';
+          return;
+        }
+        // store session token
+        localStorage.setItem('adminToken', data.token);
+        window.location.href = 'admin.html';
+      } catch (err) {
+        console.error(err);
+        message.style.color = 'red';
+        message.textContent = 'Network error';
+      }
+    });
+
+    // Toggle create-admin form
+    toggleBtn.addEventListener('click', () => {
+      createForm.style.display = createForm.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Create admin handler
+    createForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      message.textContent = '';
+      const name = document.getElementById('newAdminName').value.trim();
+      const newAdminId = document.getElementById('newAdminId').value.trim();
+      const newPasskey = document.getElementById('newPasskey').value.trim();
+      if (!name || !newAdminId || !newPasskey) {
+        message.style.color = 'red';
+        message.textContent = 'All fields are required to create admin';
+        return;
+      }
+      try {
+        const res = await fetch('/admin/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, adminId: newAdminId, passkey: newPasskey })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          message.style.color = 'red';
+          message.textContent = data.error || 'Failed to create admin';
+          return;
+        }
+        message.style.color = 'green';
+        message.textContent = 'Admin created successfully. You can now log in.';
+        // Prefill adminId in login form
+        document.getElementById('adminId').value = newAdminId;
+        // Hide and reset form
+        createForm.reset();
+        createForm.style.display = 'none';
+      } catch (err) {
+        console.error(err);
+        message.style.color = 'red';
+        message.textContent = 'Network error while creating admin';
+      }
+    });
+  </script>
+</body>
+</html>

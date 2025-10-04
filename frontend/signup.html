@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head><title>Signup</title><link rel="stylesheet" href="style.css"></head>
+<body>
+  <div id="topbar">Student Portal</div>
+  <div class="container" id="signupContainer">
+  <h2 id="signupTitle">Student Signup</h2>
+  <form id="signupForm">
+    <input type="text" placeholder="USN" id="usn" required><br>
+    <input type="password" placeholder="Password" id="password" required><br>
+    <input type="text" placeholder="Name" id="name" required><br>
+    <select id="college">
+      <option value="BMSIT&M">BMSIT&M</option>
+      <option value="NITTE">NITTE</option>
+      <option value="BMSCE">BMSCE</option>
+    </select><br>
+    <button type="submit">Signup</button>
+  </form>
+  </div>
+
+  <script>
+    document.getElementById("signupForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const usn = document.getElementById("usn").value;
+      const password = document.getElementById("password").value;
+      const name = document.getElementById("name").value;
+      const college = document.getElementById("college").value;
+
+        const res = await fetch("/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usn, password, name, college })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+        alert("Error: " + (data.msg || data.error));
+        } else {
+        alert(data.msg);
+        window.location.href = "index.html";
+        }
+
+    });
+  </script>
+</body>
+</html>

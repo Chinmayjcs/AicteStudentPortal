@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="topbar">Student Portal</div>
+  <div class="container" id="loginContainer">
+  <h2 id="loginTitle">Student Login</h2>
+  <form id="loginForm">
+    <input type="text" placeholder="USN" id="usn" required><br>
+    <input type="password" placeholder="Password" id="password" required><br>
+    <button type="submit">Login</button>
+  </form>
+
+  <br>
+  <!-- Signup Button -->
+  <button onclick="window.location.href='signup.html'">Create New Account</button>
+  <!-- Admin Button -->
+  <button style="margin-top:10px" onclick="window.location.href='admin-login.html'">Admin</button>
+  </div>
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const usn = document.getElementById("usn").value;
+      const password = document.getElementById("password").value;
+
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usn, password })
+      });
+      const data = await res.json();
+      alert(data.msg);
+
+      if (res.ok) {
+        localStorage.setItem("usn", usn);
+        window.location.href = "dashboard.html";
+      }
+    });
+  </script>
+</body>
+</html>
